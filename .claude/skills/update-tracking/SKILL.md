@@ -52,5 +52,12 @@ A trigger writes a `status_change` event on every status change, so never insert
    - `status` defaults to `lead` unless the user says otherwise, and `source` defaults to `manual`.
    - If the user gives posting text or a reachable posting URL, store the text in `posting_text` and set `posting_captured_at = strftime('%Y-%m-%dT%H:%M:%S','now')`.
 4. **Note:** `INSERT INTO events (application_id, kind, detail, source) VALUES (?, 'note', ?, 'manual')`. Notes never change the status.
-5. **If the helper reports an error** (for example `CHECK constraint failed`), tell the user what failed and why. Don't retry with altered data unless the user asks.
-6. **Confirm briefly** what changed: company, role, old status and new status.
+5. **LinkedIn job** (a `linkedin.com/jobs/view/<id>` URL, a bare job ID, or a result from LinkedIn search). This needs the `linkedin` MCP server, which runs in Docker.
+   1. Take the numeric `<id>`. The canonical URL is `https://www.linkedin.com/jobs/view/<id>/`; drop any query string such as `?refId=`. Store only this form, so the unique `url` catches duplicates.
+   2. `SELECT id, posting_text FROM applications WHERE url = ?` with the canonical URL.
+      - **Row exists, `posting_text` set:** say it's already tracked. Done.
+      - **Row exists, `posting_text` empty:** call `get_job_details`, then `UPDATE applications SET posting_text = ?, posting_captured_at = strftime('%Y-%m-%dT%H:%M:%S','now') WHERE id = ?`.
+      - **No row:** call `get_job_details`, then insert `company`, `role` (the job title), `location`, `url` (canonical), `source = 'linkedin'`, `status = 'lead'` (unless the user says otherwise), `posting_text` (the full description) and `posting_captured_at`.
+   3. **If the LinkedIn tools fail** (not logged in, session expired, Docker not running), say so and ask before adding the application without posting text.
+6. **If the helper reports an error** (for example `CHECK constraint failed`), tell the user what failed and why. Don't retry with altered data unless the user asks.
+7. **Confirm briefly** what changed: company, role, old status and new status.

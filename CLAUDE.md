@@ -33,6 +33,15 @@ This repo provides the tools, skills and MCP servers that let Claude Code act as
 - Fetch only: `uv run --env-file .env inbox/fetch.py [--since YYYY-MM-DD]`. Normally run through the check-inbox skill, which triages, updates and advances the stamp.
 - Never Read fetched mail bodies in the main session. That is the triage agent's job.
 
+## LinkedIn MCP
+
+- `.mcp.json` runs the `linkedin` server ([stickerdaniel/linkedin-mcp-server](https://github.com/stickerdaniel/linkedin-mcp-server)) in Docker, pinned by digest. It sees only `~/.linkedin-mcp` (the session, outside the repo). Docker Desktop must be running.
+- Tool policy is in `.claude/settings.json`: only the read-only job and company tools are allowed, and everything that acts as the user or reads messages is denied. Keep it that way. LinkedIn's terms forbid automation, so use it sparingly and from one session at a time.
+- Log in (once, and again when the session expires): run the command below, open http://127.0.0.1:6080, sign in, then stop it.
+  `docker run -it --rm -v ~/.linkedin-mcp:/home/pwuser/.linkedin-mcp -p 127.0.0.1:6080:6080 stickerdaniel/linkedin-mcp-server:4.26.2@sha256:c7aa139cfaaecc8ae9f5e810d6517e5e36b5a1a52cadcb4eef6f0832810b4da6 --login --login-viewer`
+- Upgrade: change the tag and digest in `.mcp.json` (and in the login command above), list the new version's tools, and put every tool in either the allow or the deny list.
+- Saving a LinkedIn job with posting text: see the update-tracking skill.
+
 ## Commands
 
 - Test: `uv run python -m unittest discover tests`

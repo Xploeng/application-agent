@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__linkedin__search_jobs",
+      "mcp__linkedin__get_job_details",
+      "mcp__linkedin__get_company_profile",
+      "mcp__linkedin__search_companies",
+      "mcp__linkedin__get_saved_jobs",
+      "mcp__linkedin__get_my_profile"
+    ],
+    "deny": [
+      "mcp__linkedin__send_message",
+      "mcp__linkedin__connect_with_person",
+      "mcp__linkedin__get_inbox",
+      "mcp__linkedin__get_conversation",
+      "mcp__linkedin__search_conversations",
+      "mcp__linkedin__get_person_profile",
+      "mcp__linkedin__get_sidebar_profiles",
+      "mcp__linkedin__search_people",
+      "mcp__linkedin__get_company_employees",
+      "mcp__linkedin__get_company_posts",
+      "mcp__linkedin__get_feed",
+      "mcp__linkedin__search_posts",
+      "mcp__linkedin__close_session"
+    ]
+  }
+}
