@@ -40,3 +40,12 @@ BEGIN
   VALUES (NEW.id, 'status_change', OLD.status || ' -> ' || NEW.status);
   UPDATE applications SET updated_at = strftime('%Y-%m-%dT%H:%M:%S','now') WHERE id = NEW.id;
 END;
+
+-- Inbox check: received time (UTC) of the newest processed mail. Seeded with the
+-- install time, since tracking is up to date then; later inits leave it alone.
+CREATE TABLE IF NOT EXISTS inbox_state (
+  id           INTEGER PRIMARY KEY CHECK (id = 1),
+  last_mail_at TEXT NOT NULL
+) STRICT;
+
+INSERT OR IGNORE INTO inbox_state VALUES (1, strftime('%Y-%m-%dT%H:%M:%S+00:00','now'));

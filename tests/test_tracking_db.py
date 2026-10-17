@@ -5,7 +5,7 @@ import time
 import unittest
 from pathlib import Path
 
-from tracking.db import connect, init
+from tracking.db import connect, init, run_sql
 
 
 class TrackingDbTest(unittest.TestCase):
@@ -77,6 +77,22 @@ class TrackingDbTest(unittest.TestCase):
     def test_event_for_unknown_application_rejected(self):
         with self.assertRaises(sqlite3.IntegrityError), self.conn:
             self.conn.execute("INSERT INTO events (application_id, kind) VALUES (999, 'note')")
+
+    def test_inbox_stamp_seeded_once(self):
+        with self.conn:
+            self.conn.execute("UPDATE inbox_state SET last_mail_at = '2026-01-01T00:00:00+00:00'")
+        init(self.path)
+        self.assertEqual(
+            self.conn.execute("SELECT last_mail_at FROM inbox_state").fetchall(), [("2026-01-01T00:00:00+00:00",)]
+        )
+
+    def test_run_sql_commits_and_validates(self):
+        app = self.add(status="applied")
+        run_sql("UPDATE applications SET status = ? WHERE id = ?", ["interview", str(app)], self.path)
+        self.assertEqual(self.events(app), [("applied -> interview",)])
+        self.assertEqual(run_sql("SELECT status FROM applications WHERE id = ?", [str(app)], self.path), [("interview",)])
+        with self.assertRaises(sqlite3.IntegrityError):
+            run_sql("UPDATE applications SET status = ? WHERE id = ?", ["rejectd", str(app)], self.path)
 
     def test_concurrent_writers_both_commit(self):
         self.conn.execute("BEGIN IMMEDIATE")  # hold the write lock
