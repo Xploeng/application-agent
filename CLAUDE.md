@@ -13,9 +13,18 @@ This repo provides the tools, skills and MCP servers that let Claude Code act as
 
 ## Current state
 
-Freshly scaffolded with `uv init`: only `hello.py` (placeholder entry point) and `pyproject.toml` (Python >=3.12, no dependencies). No tests, linter, or package layout yet. Update this file as those are added.
+- `tracking/`: application-tracking store (SQLite, stdlib `sqlite3`). Schema in `tracking/schema.sql`, access in `tracking/db.py`.
+- `tests/`: stdlib `unittest`.
+- `data/` (gitignored, personal data): `tracking.db`, the original tracking sheet, cover letters. Never commit or publish anything from it.
+
+## Tracking DB
+
+- Location: `data/tracking.db`. Create or upgrade it with `uv run python -m tracking.db` (idempotent).
+- Write through `tracking.db.connect()`, which turns on foreign keys and the busy timeout. Use the `sqlite3` CLI only for reads, e.g. `sqlite3 data/tracking.db "SELECT company, role, status FROM applications"`.
+- Status changes are logged to `events` by a trigger. Add your own `email`/`note` event when you know the cause.
+- Backup: `sqlite3 data/tracking.db ".backup data/tracking-backup.db"`
 
 ## Commands
 
-- Run: `uv run hello.py`
-- Add a dependency: `uv add <package>`
+- Test: `uv run python -m unittest discover tests`
+- Add a dependency: `uv add <package>` (dev-only: `uv add --dev <package>`)

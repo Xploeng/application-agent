@@ -218,3 +218,5 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+# Personal data: tracking DB, source sheet, cover letters
+data/
