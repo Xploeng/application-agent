@@ -14,16 +14,19 @@ This repo provides the tools, skills and MCP servers that let Claude Code act as
 ## Current state
 
 - `tracking/`: application-tracking store (SQLite, stdlib `sqlite3`). Schema in `tracking/schema.sql`, access in `tracking/db.py`.
+- `jobs/`: `scrape.py` (JobSpy per term/location/site, dedupe, temp dir for the evaluator), `add_leads.py` (evaluator output to `lead` rows).
 - `inbox/fetch.py`: read-only IMAP fetch of new INBOX mail into a temp dir (stdlib only).
-- `.claude/skills/update-tracking`, `.claude/skills/check-inbox`, `.claude/agents/inbox-triage.md` (Haiku, Read-only): the tracking skills.
+- Skills: `update-tracking`, `check-inbox`, `grill-preferences`, `find-jobs`, `review-leads`. Agents (Haiku, Read-only): `inbox-triage`, `job-evaluator`.
 - `tests/`: stdlib `unittest`.
-- `data/` (gitignored, personal data): `tracking.db`, the original tracking sheet, cover letters. Never commit or publish anything from it.
+- `data/` (gitignored, personal data): `tracking.db`, `preferences.toml`, `tracking-pre-migration.db` (backup from the status migration), the original tracking sheet, cover letters. Never commit or publish anything from it.
 
 ## Tracking DB
 
 - Location: `data/tracking.db`. Create or upgrade it with `uv run python -m tracking.db` (idempotent).
 - Write through `tracking.db.connect()`, which turns on foreign keys and the busy timeout. From the shell: `uv run python -m tracking.db sql "<SQL with ?>" [params...]`. Use the `sqlite3` CLI only for reads, e.g. `sqlite3 data/tracking.db "SELECT company, role, status FROM applications"`.
 - Status changes are logged to `events` by a trigger. Add your own `email`/`note` event when you know the cause.
+- Statuses: `lead` → `to_apply` (user wants to apply) → `applied` → `interview` → `offer`; `rejected` = the company said no; `dismissed` = the user said no; also `withdrawn`, `ghosted`. `init()` migrates older DBs to this status list once, with a backup.
+- Notes from `source='evaluator'` are the evaluator's reasons, and from `source='review'` the user's denial reasons. The job evaluator's digest reads them.
 - `inbox_state.last_mail_at`: received time of the newest processed mail. The inbox check reads only newer mail.
 - Backup: `sqlite3 data/tracking.db ".backup data/tracking-backup.db"`
 
@@ -32,6 +35,12 @@ This repo provides the tools, skills and MCP servers that let Claude Code act as
 - Setup: copy `.env.example` to `.env` (gitignored) and fill in the goneo IMAP credentials.
 - Fetch only: `uv run --env-file .env inbox/fetch.py [--since YYYY-MM-DD]`. Normally run through the check-inbox skill, which triages, updates and advances the stamp.
 - Never Read fetched mail bodies in the main session. That is the triage agent's job.
+
+## Job search
+
+- `data/preferences.toml` drives the JobSpy search (`[search]`: terms, locations, max_age_days, sites, exclude_companies) and the evaluator (`[evaluator].want`). Create or refine it with the grill-preferences skill.
+- Weekly flow: find-jobs (scrape → job-evaluator → leads), then review-leads (yes → `to_apply`, no → `dismissed`, reason optional).
+- Scrape only: `uv run jobs/scrape.py` (prints the temp dir). Never Read the run files in the main session; the job-evaluator agent does that.
 
 ## LinkedIn MCP
 

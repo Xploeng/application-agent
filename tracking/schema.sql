@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS applications (
   pay                 TEXT,
   source              TEXT,
   status              TEXT NOT NULL DEFAULT 'lead' CHECK (status IN
-                        ('lead','applied','interview','offer','rejected','withdrawn','ghosted')),
+                        ('lead','to_apply','applied','interview','offer','rejected','withdrawn','ghosted','dismissed')),
   applied_on          TEXT,
   updated_at          TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%S','now')),
   notes               TEXT,

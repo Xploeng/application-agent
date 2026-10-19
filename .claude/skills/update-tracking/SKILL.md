@@ -30,7 +30,15 @@ Never write with the sqlite3 CLI.
 - `posting_text`, `posting_captured_at`
 - `updated_at`
 
-`status` is one of: `lead`, `applied`, `interview`, `offer`, `rejected`, `withdrawn`, `ghosted`.
+`status` is one of:
+
+- `lead`: found, not decided yet
+- `to_apply`: the user wants to apply ("application outstanding")
+- `applied`, `interview`, `offer`
+- `rejected`: the **company** said no
+- `withdrawn`: the user pulled out after applying
+- `ghosted`
+- `dismissed`: the **user** decided against the job ("denied"). Never confuse it with `rejected`.
 
 `events`:
 - `application_id`

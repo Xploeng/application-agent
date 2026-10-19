@@ -5,7 +5,10 @@ import time
 import unittest
 from pathlib import Path
 
-from tracking.db import connect, init, run_sql
+from tracking.db import SCHEMA, connect, init, run_sql
+
+NEW_STATUSES = "('lead','to_apply','applied','interview','offer','rejected','withdrawn','ghosted','dismissed'))"
+OLD_STATUSES = "('lead','applied','interview','offer','rejected','withdrawn','ghosted'))"
 
 
 class TrackingDbTest(unittest.TestCase):
@@ -116,6 +119,56 @@ class TrackingDbTest(unittest.TestCase):
         self.assertEqual(errors, [])
         companies = {r[0] for r in self.conn.execute("SELECT company FROM applications")}
         self.assertEqual(companies, {"A", "B"})
+
+
+class StatusMigrationTest(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.path = Path(self.tmp.name) / "tracking.db"
+        old_schema = SCHEMA.read_text()
+        self.assertIn(NEW_STATUSES, old_schema)
+        conn = sqlite3.connect(self.path)
+        conn.executescript(old_schema.replace(NEW_STATUSES, OLD_STATUSES))
+        conn.execute("PRAGMA foreign_keys = ON")
+        with conn:
+            conn.execute("INSERT INTO applications (id, company, role, status) VALUES (7, 'Acme', 'Eng', 'applied')")
+            conn.execute("INSERT INTO applications (id, company, role, url) VALUES (9, 'Beta', 'ML', 'https://x/1')")
+            conn.execute("UPDATE applications SET status = 'rejected' WHERE id = 7")  # trigger writes an event
+            conn.execute("INSERT INTO events (application_id, kind, detail) VALUES (9, 'note', 'hi')")
+        conn.close()
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def test_old_schema_migrates_and_keeps_data(self):
+        init(self.path)
+        conn = connect(self.path)
+        try:
+            self.assertEqual(conn.execute("SELECT id, company, status FROM applications ORDER BY id").fetchall(),
+                             [(7, "Acme", "rejected"), (9, "Beta", "lead")])
+            self.assertEqual(conn.execute("SELECT application_id, kind, detail FROM events ORDER BY id").fetchall(),
+                             [(7, "status_change", "applied -> rejected"), (9, "note", "hi")])
+            with conn:
+                conn.execute("UPDATE applications SET status = 'to_apply' WHERE id = 9")
+                conn.execute("UPDATE applications SET status = 'dismissed' WHERE id = 7")
+            self.assertEqual(conn.execute("SELECT count(*) FROM events WHERE kind = 'status_change'").fetchone()[0], 3)
+            with self.assertRaises(sqlite3.IntegrityError), conn:
+                conn.execute("UPDATE applications SET status = 'rejectd' WHERE id = 9")
+            with self.assertRaises(sqlite3.IntegrityError), conn:  # FK to applications still enforced
+                conn.execute("INSERT INTO events (application_id, kind) VALUES (999, 'note')")
+            with self.assertRaises(sqlite3.IntegrityError), conn:  # UNIQUE url survived the rebuild
+                conn.execute("INSERT INTO applications (company, role, url) VALUES ('C', 'R', 'https://x/1')")
+            self.assertEqual(conn.execute("PRAGMA foreign_key_check").fetchall(), [])
+        finally:
+            conn.close()
+        self.assertTrue((Path(self.tmp.name) / "tracking-pre-migration.db").exists())
+
+    def test_second_init_is_a_no_op(self):
+        init(self.path)
+        backup = Path(self.tmp.name) / "tracking-pre-migration.db"
+        backup.unlink()
+        init(self.path)
+        self.assertFalse(backup.exists())
 
 
 if __name__ == "__main__":
