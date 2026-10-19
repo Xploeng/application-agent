@@ -16,6 +16,7 @@ This repo provides the tools, skills and MCP servers that let Claude Code act as
 - `tracking/`: application-tracking store (SQLite, stdlib `sqlite3`). Schema in `tracking/schema.sql`, access in `tracking/db.py`.
 - `jobs/`: `scrape.py` (JobSpy per term/location/site, dedupe, temp dir for the evaluator), `add_leads.py` (evaluator output to `lead` rows).
 - `inbox/fetch.py`: read-only IMAP fetch of new INBOX mail into a temp dir (stdlib only).
+- `tracking/api.py` + `web/`: local web UI (FastAPI + Vite/React/Mantine) to browse applications and review leads. See Tracking UI.
 - Skills: `update-tracking`, `check-inbox`, `grill-preferences`, `find-jobs`, `review-leads`. Agents (Haiku, Read-only): `inbox-triage`, `job-evaluator`.
 - `tests/`: stdlib `unittest`.
 - `data/` (gitignored, personal data): `tracking.db`, `preferences.toml`, `tracking-pre-migration.db` (backup from the status migration), the original tracking sheet, cover letters. Never commit or publish anything from it.
@@ -29,6 +30,14 @@ This repo provides the tools, skills and MCP servers that let Claude Code act as
 - Notes from `source='evaluator'` are the evaluator's reasons, and from `source='review'` the user's denial reasons. The job evaluator's digest reads them.
 - `inbox_state.last_mail_at`: received time of the newest processed mail. The inbox check reads only newer mail.
 - Backup: `sqlite3 data/tracking.db ".backup data/tracking-backup.db"`
+
+## Tracking UI
+
+- Build once (and after frontend changes): `pnpm --dir web install && pnpm --dir web build`. Run: `uv run python -m tracking.api`, then open http://127.0.0.1:8765.
+- Dev: run the API as above plus `pnpm --dir web dev` (Vite proxies `/api`). Frontend tests: `pnpm --dir web test`.
+- Read-only except the lead review. Review decisions stay in the browser (localStorage) until "Write decisions", then `POST /api/review` applies them in one transaction, only to rows still `lead` (others come back as conflicts). Same rules as the review-leads skill (which still works), except that a skip in the UI never carries a reason and never writes.
+- Reason checkboxes come from `[review].reasons` in `data/preferences.toml`. Ticked reasons and free text become one `review` note.
+- Keep it local: binds `127.0.0.1`, and only `127.0.0.1`/`localhost` Host headers are accepted.
 
 ## Inbox
 
