@@ -17,9 +17,9 @@ This repo provides the tools, skills and MCP servers that let Claude Code act as
 - `jobs/`: `scrape.py` (JobSpy per term/location/site, dedupe, temp dir for the evaluator), `add_leads.py` (evaluator output to `lead` rows).
 - `inbox/fetch.py`: read-only IMAP fetch of new INBOX mail into a temp dir (stdlib only).
 - `tracking/api.py` + `web/`: local web UI (FastAPI + Vite/React/Mantine) to browse applications and review leads. See Tracking UI.
-- Skills: `update-tracking`, `check-inbox`, `grill-preferences`, `find-jobs`, `review-leads`. Agents (Haiku, Read-only): `inbox-triage`, `job-evaluator`.
+- Skills: `update-tracking`, `check-inbox`, `grill-preferences`, `find-jobs`, `review-leads`, `build-profile`, `write-cover-letter`. Agents (Haiku, Read-only): `inbox-triage`, `job-evaluator`.
 - `tests/`: stdlib `unittest`.
-- `data/` (gitignored, personal data): `tracking.db`, `preferences.toml`, `tracking-pre-migration.db` (backup from the status migration), the original tracking sheet, cover letters. Never commit or publish anything from it.
+- `data/` (gitignored, personal data): `tracking.db`, `preferences.toml`, `tracking-pre-migration.db` (backup from the status migration), the original tracking sheet, `about_me/`, `profile.md`, `Cover_letters/`, `generated_letters/` (see Cover letters). Never commit or publish anything from it.
 
 ## Tracking DB
 
@@ -50,6 +50,15 @@ This repo provides the tools, skills and MCP servers that let Claude Code act as
 - `data/preferences.toml` drives the JobSpy search (`[search]`: terms, locations, max_age_days, sites, exclude_companies) and the evaluator (`[evaluator].want`). Create or refine it with the grill-preferences skill.
 - Weekly flow: find-jobs (scrape → job-evaluator → leads), then review-leads (yes → `to_apply`, no → `dismissed`, reason optional).
 - Scrape only: `uv run jobs/scrape.py` (prints the temp dir). Never Read the run files in the main session; the job-evaluator agent does that.
+
+## Cover letters
+
+- `data/about_me/`: the user's documents (CV, transcript, ...). Input for build-profile.
+- `data/profile.md`: the user's facts for applications, written by build-profile and editable by hand. Letters claim only what is in it.
+- `data/Cover_letters/`: the user's sample letters, the style reference. Each PDF has an extracted `.txt` beside it. The skills only read this folder.
+- `data/generated_letters/`: letters from write-cover-letter (`Cover Letter-<Company>.txt`). The user moves an approved letter into `Cover_letters/` by hand, so drafts never become samples on their own.
+- `data/cover-letter-feedback.md`: the user's corrections to drafts, each with a "Rule for the skill". write-cover-letter follows them and adds an entry after every run with revisions. Fold rules that hold up into the skill.
+- write-cover-letter works only on the posting the user names (application id or company), writes in the posting's language and never changes the DB.
 
 ## LinkedIn MCP
 
