@@ -41,6 +41,7 @@ One letter, for the one posting the user named. This skill only **reads** `data/
   - **Body:** only the few profile facts that prove fit for the posting's main responsibilities. Tie each one explicitly to a responsibility.
   - **Leave out CV recap** (education history, generic paragraphs on years, tools and tech) unless the posting asks for it.
 - **Salutation:** address the contact person by name if the posting gives one, otherwise use a team salutation as the samples do.
+- **End at the closing phrase** (e.g. "With best regards,"). No name, address or contact block after it, even though the samples have one: the user pastes the text into a design that already has them.
 - Show the full draft in the chat, as plain text.
 
 ## 4. Revise and save
